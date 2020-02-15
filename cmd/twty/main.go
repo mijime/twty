@@ -628,7 +628,7 @@ func main() {
 			log.Fatalf("cannot delete tweet: %v", err)
 		}
 
-		fmt.Println("delete tweeted:", res.Identifier)
+		fmt.Println("delete tweet:", res.Identifier)
 		return
 	}
 
