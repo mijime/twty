@@ -417,6 +417,7 @@ func main() {
 	var favoriteTwID string
 	var search string
 	var inreplyTwID string
+	var retweetTwID string
 	var delay time.Duration
 	var media files
 	var verbose bool
@@ -429,7 +430,8 @@ func main() {
 	flag.StringVar(&user, "u", "", "show user timeline")
 	flag.StringVar(&search, "s", "", "search word")
 	flag.StringVar(&favoriteTwID, "fav_id", "", "favorite by tweet ID")
-	flag.StringVar(&inreplyTwID, "rep_id", "", "in-reply by tweet ID, if not specify text, it will be RT.")
+	flag.StringVar(&inreplyTwID, "rep_id", "", "in-reply by tweet ID")
+	flag.StringVar(&retweetTwID, "rt_id", "", "retweet by tweet ID")
 	flag.StringVar(&destroyTwID, "destroy_id", "", "destroy by tweet ID")
 	flag.Var(&media, "m", "upload media")
 	flag.DurationVar(&delay, "S", 0, "delay")
@@ -618,24 +620,24 @@ func main() {
 		return
 	}
 
-	if flag.NArg() == 0 && len(media) == 0 {
-		if inreplyTwID != "" {
-			opt := makeopt("tweet_mode", "extended")
-			opt = countToOpt(opt, count)
+	if retweetTwID != "" {
+		opt := makeopt("tweet_mode", "extended")
+		opt = countToOpt(opt, count)
 
-			var tweet twitter.Tweet
-			err := rawCall(token, http.MethodPost, "https://api.twitter.com/1.1/statuses/retweet/"+inreplyTwID+".json", opt, &tweet)
-			if err != nil {
-				log.Fatalf("cannot retweet: %v", err)
-			}
-
-			color.Set(color.FgHiYellow)
-			fmt.Print(_EmojiHighVoltage)
-			color.Set(color.Reset)
-			fmt.Println("retweeted:", tweet.ID)
-			return
+		var tweet twitter.Tweet
+		err := rawCall(token, http.MethodPost, "https://api.twitter.com/1.1/statuses/retweet/"+retweetTwID+".json", opt, &tweet)
+		if err != nil {
+			log.Fatalf("cannot retweet: %v", err)
 		}
 
+		color.Set(color.FgHiYellow)
+		fmt.Print(_EmojiHighVoltage)
+		color.Set(color.Reset)
+		fmt.Println("retweeted:", tweet.ID)
+		return
+	}
+
+	if flag.NArg() == 0 && len(media) == 0 {
 		if delay > 0 {
 			opt := makeopt()
 			opt = sinceToOpt(opt, since)
