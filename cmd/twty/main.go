@@ -258,11 +258,18 @@ func showTweets(tweets []twitter.Tweet, asjson bool, verbose bool) {
 
 			text = replacer.Replace(text)
 			color.Set(color.FgHiRed)
-			fmt.Println(user + ": " + name)
+			fmt.Print(user + ": " + name)
+			fmt.Println(": " + tweets[i].ID)
 			color.Set(color.Reset)
 			fmt.Println("  " + html.UnescapeString(text))
-			fmt.Println("  " + tweets[i].ID)
-			fmt.Println("  " + toLocalTime(tweets[i].CreatedAt))
+			fmt.Println()
+			if len(tweets[i].InReplyToStatusID) > 0 {
+				fmt.Println("  Reply: " + tweets[i].InReplyToStatusID)
+			}
+			fmt.Println("  Date: " + toLocalTime(tweets[i].CreatedAt))
+			fmt.Print("  FV: " + strconv.Itoa(tweets[i].FavoriteCount))
+			fmt.Print("  RT: " + strconv.Itoa(tweets[i].RetweetCount))
+			fmt.Println("  Via: " + tweets[i].Source)
 			fmt.Println()
 		}
 		return

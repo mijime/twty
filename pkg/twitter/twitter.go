@@ -85,6 +85,13 @@ type Tweet struct {
 	User      User     `json:"user"`
 	Place     *Place   `json:"place"`
 	Entities  Entities `json:"entities"`
+
+	InReplyToStatusID string `json:"in_reply_to_status_id_str"`
+
+	RetweetCount  int  `json:"retweet_count"`
+	Retweeted     bool `json:"retweeted"`
+	FavoriteCount int  `json:"favorite_count"`
+	Favorited     bool `json:"favorited"`
 }
 
 // SearchMetadata hold information about search metadata
