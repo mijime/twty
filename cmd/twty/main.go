@@ -24,114 +24,14 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/garyburd/go-oauth/oauth"
+
+	"github.com/mijime/twty/pkg/twitter"
 )
 
 const (
 	_EmojiRedHeart    = "\u2764"
 	_EmojiHighVoltage = "\u26A1"
 )
-
-// Account hold information about account
-type Account struct {
-	TimeZone struct {
-		Name       string `json:"name"`
-		UtcOffset  int    `json:"utc_offset"`
-		TzinfoName string `json:"tzinfo_name"`
-	} `json:"time_zone"`
-	Protected                bool   `json:"protected"`
-	ScreenName               string `json:"screen_name"`
-	AlwaysUseHTTPS           bool   `json:"always_use_https"`
-	UseCookiePersonalization bool   `json:"use_cookie_personalization"`
-	SleepTime                struct {
-		Enabled   bool        `json:"enabled"`
-		EndTime   interface{} `json:"end_time"`
-		StartTime interface{} `json:"start_time"`
-	} `json:"sleep_time"`
-	GeoEnabled                bool   `json:"geo_enabled"`
-	Language                  string `json:"language"`
-	DiscoverableByEmail       bool   `json:"discoverable_by_email"`
-	DiscoverableByMobilePhone bool   `json:"discoverable_by_mobile_phone"`
-	DisplaySensitiveMedia     bool   `json:"display_sensitive_media"`
-	AllowContributorRequest   string `json:"allow_contributor_request"`
-	AllowDmsFrom              string `json:"allow_dms_from"`
-	AllowDmGroupsFrom         string `json:"allow_dm_groups_from"`
-	SmartMute                 bool   `json:"smart_mute"`
-	TrendLocation             []struct {
-		Name        string `json:"name"`
-		CountryCode string `json:"countryCode"`
-		URL         string `json:"url"`
-		Woeid       int    `json:"woeid"`
-		PlaceType   struct {
-			Name string `json:"name"`
-			Code int    `json:"code"`
-		} `json:"placeType"`
-		Parentid int    `json:"parentid"`
-		Country  string `json:"country"`
-	} `json:"trend_location"`
-}
-
-// Tweet hold information about tweet
-type Tweet struct {
-	Text       string `json:"text"`
-	FullText   string `json:"full_text,omitempty"`
-	Identifier string `json:"id_str"`
-	Source     string `json:"source"`
-	CreatedAt  string `json:"created_at"`
-	User       struct {
-		Name            string `json:"name"`
-		ScreenName      string `json:"screen_name"`
-		FollowersCount  int    `json:"followers_count"`
-		ProfileImageURL string `json:"profile_image_url"`
-	} `json:"user"`
-	Place *struct {
-		ID       string `json:"id"`
-		FullName string `json:"full_name"`
-	} `json:"place"`
-	Entities struct {
-		HashTags []struct {
-			Indices [2]int `json:"indices"`
-			Text    string `json:"text"`
-		}
-		UserMentions []struct {
-			Indices    [2]int `json:"indices"`
-			ScreenName string `json:"screen_name"`
-		} `json:"user_mentions"`
-		Urls []struct {
-			Indices [2]int `json:"indices"`
-			URL     string `json:"url"`
-		} `json:"urls"`
-	} `json:"entities"`
-}
-
-// SearchMetadata hold information about search metadata
-type SearchMetadata struct {
-	CompletedIn float64 `json:"completed_in"`
-	MaxID       int64   `json:"max_id"`
-	MaxIDStr    string  `json:"max_id_str"`
-	NextResults string  `json:"next_results"`
-	Query       string  `json:"query"`
-	RefreshURL  string  `json:"refresh_url"`
-	Count       int     `json:"count"`
-	SinceID     int     `json:"since_id"`
-	SinceIDStr  string  `json:"since_id_str"`
-}
-
-// RSS hold information about RSS
-type RSS struct {
-	Channel struct {
-		Title       string
-		Description string
-		Link        string
-		Item        []struct {
-			Title       string
-			Description string
-			PubDate     string
-			Link        []string
-			GUID        string
-			Author      string
-		}
-	}
-}
 
 type files []string
 
@@ -158,29 +58,37 @@ func makeopt(v ...string) map[string]string {
 	return opt
 }
 
+func lookupBrowserCommand(url string) (string, []string) {
+	if runtime.GOOS == "windows" {
+		return "rundll32.exe", []string{"url.dll,FileProtocolHandler", url}
+	}
+
+	if runtime.GOOS == "darwin" {
+		return "open", []string{url}
+	}
+
+	if runtime.GOOS == "plan9" {
+		return "plumb", []string{url}
+	}
+
+	return "xdg-open", []string{url}
+}
+
 func clientAuth(requestToken *oauth.Credentials) (*oauth.Credentials, error) {
-	var err error
-	browser := "xdg-open"
 	url := oauthClient.AuthorizationURL(requestToken, nil)
 
-	args := []string{url}
-	if runtime.GOOS == "windows" {
-		browser = "rundll32.exe"
-		args = []string{"url.dll,FileProtocolHandler", url}
-	} else if runtime.GOOS == "darwin" {
-		browser = "open"
-		args = []string{url}
-	} else if runtime.GOOS == "plan9" {
-		browser = "plumb"
-	}
 	color.Set(color.FgHiRed)
 	fmt.Println("Open this URL and enter PIN.")
 	color.Set(color.Reset)
 	fmt.Println(url)
-	browser, err = exec.LookPath(browser)
+
+	browser, args := lookupBrowserCommand(url)
+	cmdPath, err := exec.LookPath(browser)
+
 	if err == nil {
-		cmd := exec.Command(browser, args...)
+		cmd := exec.Command(cmdPath, args...)
 		cmd.Stderr = os.Stderr
+
 		err = cmd.Start()
 		if err != nil {
 			return nil, fmt.Errorf("cannot start command: %v", err)
@@ -188,14 +96,17 @@ func clientAuth(requestToken *oauth.Credentials) (*oauth.Credentials, error) {
 	}
 
 	fmt.Print("PIN: ")
+
 	stdin := bufio.NewScanner(os.Stdin)
 	if !stdin.Scan() {
 		return nil, fmt.Errorf("canceled")
 	}
+
 	accessToken, _, err := oauthClient.RequestToken(http.DefaultClient, requestToken, stdin.Text())
 	if err != nil {
 		return nil, fmt.Errorf("cannot request token: %v", err)
 	}
+
 	return accessToken, nil
 }
 
@@ -317,17 +228,24 @@ func toLocalTime(timeStr string) string {
 	return timeValue.Local().Format(_TimeLayout)
 }
 
-func showTweets(tweets []Tweet, asjson bool, verbose bool) {
+func showTweets(tweets []twitter.Tweet, asjson bool, verbose bool) {
 	if asjson {
 		for _, tweet := range tweets {
 			if tweet.FullText != "" {
 				tweet.Text = tweet.FullText
 				tweet.FullText = ""
 			}
-			json.NewEncoder(os.Stdout).Encode(tweet)
+			err := json.NewEncoder(os.Stdout).Encode(tweet)
+			if err != nil {
+				log.Fatal(err)
+			}
+
 			os.Stdout.Sync()
 		}
-	} else if verbose {
+		return
+	}
+
+	if verbose {
 		for i := len(tweets) - 1; i >= 0; i-- {
 			name := tweets[i].User.Name
 			user := tweets[i].User.ScreenName
@@ -337,6 +255,7 @@ func showTweets(tweets []Tweet, asjson bool, verbose bool) {
 			} else {
 				text = tweets[i].Text
 			}
+
 			text = replacer.Replace(text)
 			color.Set(color.FgHiRed)
 			fmt.Println(user + ": " + name)
@@ -346,21 +265,22 @@ func showTweets(tweets []Tweet, asjson bool, verbose bool) {
 			fmt.Println("  " + toLocalTime(tweets[i].CreatedAt))
 			fmt.Println()
 		}
-	} else {
-		for i := len(tweets) - 1; i >= 0; i-- {
-			user := tweets[i].User.ScreenName
-			var text string
-			if tweets[i].FullText != "" {
-				text = tweets[i].FullText
-			} else {
-				text = tweets[i].Text
-			}
-			color.Set(color.FgHiRed)
-			fmt.Print(user)
-			color.Set(color.Reset)
-			fmt.Print(": ")
-			fmt.Println(html.UnescapeString(text))
+		return
+	}
+
+	for i := len(tweets) - 1; i >= 0; i-- {
+		user := tweets[i].User.ScreenName
+		var text string
+		if tweets[i].FullText != "" {
+			text = tweets[i].FullText
+		} else {
+			text = tweets[i].Text
 		}
+		color.Set(color.FgHiRed)
+		fmt.Print(user)
+		color.Set(color.Reset)
+		fmt.Print(": ")
+		fmt.Println(html.UnescapeString(text))
 	}
 }
 
@@ -413,9 +333,7 @@ func getConfig(profile string) (string, map[string]string, error) {
 	return file, config, nil
 }
 
-var (
-	debug bool
-)
+var debug bool
 
 func readFile(filename string) ([]byte, error) {
 	if filename == "-" {
@@ -525,23 +443,23 @@ func main() {
 
 	flag.Usage = func() {
 		fmt.Fprint(os.Stderr, `Usage of twty:
-  -a PROFILE: switch profile to load configuration file.
-  -f ID: specify favorite ID
-  -i ID: specify in-reply ID, if not specify text, it will be RT.
-  -l USER/LIST: show list's timeline (ex: mattn_jp/subtech)
-  -m FILE: upload media
-  -u USER: show user's timeline
-  -s WORD: search timeline
-  -S DELAY tweets after DELAY
-  -json: as JSON
-  -r: show replies
-  -v: detail display
-  -ff FILENAME: post utf-8 string from a file("-" means STDIN)
-  -count NUMBER: show NUMBER tweets at timeline.
-  -since DATE: show tweets created after the DATE (ex. 2017-05-01)
-  -until DATE: show tweets created before the DATE (ex. 2017-05-31)
-  -since_id NUMBER: show tweets that have ids greater than NUMBER.
-  -max_id NUMBER: show tweets that have ids lower than NUMBER.
+		-a PROFILE: switch profile to load configuration file.
+		-f ID: specify favorite ID
+		-i ID: specify in-reply ID, if not specify text, it will be RT.
+		-l USER/LIST: show list's timeline (ex: mattn_jp/subtech)
+		-m FILE: upload media
+		-u USER: show user's timeline
+		-s WORD: search timeline
+		-S DELAY tweets after DELAY
+		-json: as JSON
+		-r: show replies
+		-v: detail display
+		-ff FILENAME: post utf-8 string from a file("-" means STDIN)
+		-count NUMBER: show NUMBER tweets at timeline.
+		-since DATE: show tweets created after the DATE (ex. 2017-05-01)
+		-until DATE: show tweets created before the DATE (ex. 2017-05-31)
+		-since_id NUMBER: show tweets that have ids greater than NUMBER.
+		-max_id NUMBER: show tweets that have ids lower than NUMBER.
 `)
 	}
 	flag.Parse()
@@ -552,10 +470,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("cannot get configuration: %v", err)
 	}
+
 	token, authorized, err := getAccessToken(config)
 	if err != nil {
 		log.Fatalf("cannot get access token: %v", err)
 	}
+
 	if authorized {
 		b, err := json.MarshalIndent(config, "", "  ")
 		if err != nil {
@@ -568,17 +488,8 @@ func main() {
 	}
 
 	if len(media) > 0 {
-		res := struct {
-			MediaID          int64  `json:"media_id"`
-			MediaIDString    string `json:"media_id_string"`
-			Size             int    `json:"size"`
-			ExpiresAfterSecs int    `json:"expires_after_secs"`
-			Image            struct {
-				ImageType string `json:"image_type"`
-				W         int    `json:"w"`
-				H         int    `json:"h"`
-			} `json:"image"`
-		}{}
+		var res twitter.UploadMediaResponse
+
 		for i := range media {
 			err = upload(token, media[i], nil, &res)
 			if err != nil {
@@ -589,10 +500,6 @@ func main() {
 	}
 
 	if len(search) > 0 {
-		res := struct {
-			Statuses       []Tweet `json:"statuses"`
-			SearchMetadata `json:"search_metadata"`
-		}{}
 		opt := makeopt(
 			"tweet_mode", "extended",
 			"q", search,
@@ -600,33 +507,42 @@ func main() {
 		opt = countToOpt(opt, count)
 		opt = sinceToOpt(opt, since)
 		opt = untilToOpt(opt, until)
+
+		var res twitter.SearchTweetsResponse
 		err := rawCall(token, http.MethodGet, "https://api.twitter.com/1.1/search/tweets.json", opt, &res)
 		if err != nil {
 			log.Fatalf("cannot get statuses: %v", err)
 		}
 		showTweets(res.Statuses, asjson, verbose)
-	} else if reply {
-		var tweets []Tweet
+		return
+	}
+
+	if reply {
 		opt := makeopt(
 			"tweet_mode", "extended",
 		)
 		opt = countToOpt(opt, count)
+
+		var tweets []twitter.Tweet
 		err := rawCall(token, http.MethodGet, "https://api.twitter.com/1.1/statuses/mentions_timeline.json", opt, &tweets)
 		if err != nil {
 			log.Fatalf("cannot get tweets: %v", err)
 		}
 		showTweets(tweets, asjson, verbose)
-	} else if list != "" {
+		return
+	}
+
+	if list != "" {
 		part := strings.SplitN(list, "/", 2)
 		if len(part) == 1 {
-			var account Account
+			var account twitter.Account
 			err := rawCall(token, http.MethodGet, "https://api.twitter.com/1.1/account/settings.json", nil, &account)
 			if err != nil {
 				log.Fatalf("cannot get account: %v", err)
 			}
 			part = []string{account.ScreenName, part[0]}
 		}
-		var tweets []Tweet
+
 		opt := makeopt(
 			"tweet_mode", "extended",
 			"owner_screen_name", part[0],
@@ -635,13 +551,18 @@ func main() {
 		opt = countToOpt(opt, count)
 		opt = sinceIDtoOpt(opt, sinceID)
 		opt = maxIDtoOpt(opt, maxID)
+
+		var tweets []twitter.Tweet
 		err := rawCall(token, http.MethodGet, "https://api.twitter.com/1.1/lists/statuses.json", opt, &tweets)
 		if err != nil {
 			log.Fatalf("cannot get tweets: %v", err)
 		}
 		showTweets(tweets, asjson, verbose)
-	} else if user != "" {
-		var tweets []Tweet
+		return
+	}
+
+	if user != "" {
+		var tweets []twitter.Tweet
 		opt := makeopt(
 			"tweet_mode", "extended",
 			"screen_name", user,
@@ -654,7 +575,10 @@ func main() {
 			log.Fatalf("cannot get tweets: %v", err)
 		}
 		showTweets(tweets, asjson, verbose)
-	} else if favorite != "" {
+		return
+	}
+
+	if favorite != "" {
 		opt := makeopt(
 			"id", favorite,
 		)
@@ -666,71 +590,91 @@ func main() {
 		fmt.Print(_EmojiRedHeart)
 		color.Set(color.Reset)
 		fmt.Println("favorited")
-	} else if fromfile != "" {
+		return
+	}
+
+	if fromfile != "" {
 		text, err := readFile(fromfile)
 		if err != nil {
 			log.Fatalf("cannot read a new tweet: %v", err)
 		}
-		var tweet Tweet
+
 		opt := makeopt(
 			"status", string(text),
 			"in_reply_to_status_id", inreply,
 			"media_ids", media.String(),
 		)
+
+		var tweet twitter.Tweet
 		err = rawCall(token, http.MethodPost, "https://api.twitter.com/1.1/statuses/update.json", opt, &tweet)
 		if err != nil {
 			log.Fatalf("cannot post tweet: %v", err)
 		}
 		fmt.Println("tweeted:", tweet.Identifier)
-	} else if flag.NArg() == 0 && len(media) == 0 {
+		return
+	}
+
+	if flag.NArg() == 0 && len(media) == 0 {
 		if inreply != "" {
-			var tweet Tweet
 			opt := makeopt("tweet_mode", "extended")
 			opt = countToOpt(opt, count)
+
+			var tweet twitter.Tweet
 			err := rawCall(token, http.MethodPost, "https://api.twitter.com/1.1/statuses/retweet/"+inreply+".json", opt, &tweet)
 			if err != nil {
 				log.Fatalf("cannot retweet: %v", err)
 			}
+
 			color.Set(color.FgHiYellow)
 			fmt.Print(_EmojiHighVoltage)
 			color.Set(color.Reset)
 			fmt.Println("retweeted:", tweet.Identifier)
-		} else if delay > 0 {
-			var tweets []Tweet
+			return
+		}
+
+		if delay > 0 {
 			opt := makeopt()
+			opt = sinceToOpt(opt, since)
+
 			for {
-				opt = sinceToOpt(opt, since)
+				var tweets []twitter.Tweet
 				err := rawCall(token, http.MethodGet, "https://api.twitter.com/1.1/statuses/home_timeline.json", opt, &tweets)
 				if err != nil {
 					log.Fatalf("cannot get tweets: %v", err)
 				}
+
 				if len(tweets) > 0 {
 					showTweets(tweets, asjson, verbose)
 					since = tweets[len(tweets)-1].CreatedAt
+					opt = sinceToOpt(opt, since)
 				}
+
 				time.Sleep(delay)
 			}
-		} else {
-			var tweets []Tweet
-			opt := makeopt("tweet_mode", "extended")
-			opt = countToOpt(opt, count)
-			err := rawCall(token, http.MethodGet, "https://api.twitter.com/1.1/statuses/home_timeline.json", opt, &tweets)
-			if err != nil {
-				log.Fatalf("cannot get tweets: %v", err)
-			}
-			showTweets(tweets, asjson, verbose)
 		}
-	} else {
-		var tweet Tweet
-		opt := makeopt(
-			"status", strings.Join(flag.Args(), " "),
-			"in_reply_to_status_id", inreply,
-			"media_ids", media.String(),
-		)
-		err = rawCall(token, http.MethodPost, "https://api.twitter.com/1.1/statuses/update.json", opt, &tweet)
+
+		opt := makeopt("tweet_mode", "extended")
+		opt = countToOpt(opt, count)
+
+		var tweets []twitter.Tweet
+		err := rawCall(token, http.MethodGet, "https://api.twitter.com/1.1/statuses/home_timeline.json", opt, &tweets)
 		if err != nil {
-			log.Fatalf("cannot post tweet: %v", err)
+			log.Fatalf("cannot get tweets: %v", err)
 		}
-		fmt.Println("tweeted:", tweet.Identifier)
+		showTweets(tweets, asjson, verbose)
+		return
 	}
+
+	opt := makeopt(
+		"status", strings.Join(flag.Args(), " "),
+		"in_reply_to_status_id", inreply,
+		"media_ids", media.String(),
+	)
+
+	var tweet twitter.Tweet
+	err = rawCall(token, http.MethodPost, "https://api.twitter.com/1.1/statuses/update.json", opt, &tweet)
+	if err != nil {
+		log.Fatalf("cannot post tweet: %v", err)
+	}
+	fmt.Println("tweeted:", tweet.Identifier)
 }
