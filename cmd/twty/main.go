@@ -444,7 +444,7 @@ func main() {
 	flag.Int64Var(&maxID, "max_id", 0, "fetch tweets that id is lower than max_id.")
 
 	flag.Usage = func() {
-		fmt.Fprint(os.Stderr, `Usage of twty:
+		fmt.Fprintln(os.Stderr, `Usage of twty:
 		-a PROFILE: switch profile to load configuration file.
 		-f ID: specify favorite ID
 		-i ID: specify in-reply ID, if not specify text, it will be RT.
@@ -462,8 +462,7 @@ func main() {
 		-since DATE: show tweets created after the DATE (ex. 2017-05-01)
 		-until DATE: show tweets created before the DATE (ex. 2017-05-31)
 		-since_id NUMBER: show tweets that have ids greater than NUMBER.
-		-max_id NUMBER: show tweets that have ids lower than NUMBER.
-`)
+		-max_id NUMBER: show tweets that have ids lower than NUMBER.`)
 	}
 	flag.Parse()
 
