@@ -413,6 +413,7 @@ func main() {
 	var delay time.Duration
 	var media files
 	var verbose bool
+	var destroyTweetID string
 
 	flag.StringVar(&profile, "a", "", "account")
 	flag.BoolVar(&reply, "r", false, "show replies")
@@ -420,6 +421,7 @@ func main() {
 	flag.BoolVar(&asjson, "json", false, "show tweets as json")
 	flag.StringVar(&user, "u", "", "show user timeline")
 	flag.StringVar(&favorite, "f", "", "specify favorite ID")
+	flag.StringVar(&destroyTweetID, "destroy", "", "ID: specify destroy ID")
 	flag.StringVar(&search, "s", "", "search word")
 	flag.StringVar(&inreply, "i", "", "specify in-reply ID, if not specify text, it will be RT.")
 	flag.Var(&media, "m", "upload media")
@@ -446,6 +448,7 @@ func main() {
 		-a PROFILE: switch profile to load configuration file.
 		-f ID: specify favorite ID
 		-i ID: specify in-reply ID, if not specify text, it will be RT.
+		-destroy ID: specify destroy tweet ID
 		-l USER/LIST: show list's timeline (ex: mattn_jp/subtech)
 		-m FILE: upload media
 		-u USER: show user's timeline
@@ -614,6 +617,19 @@ func main() {
 			log.Fatalf("cannot post tweet: %v", err)
 		}
 		fmt.Println("tweeted:", tweet.Identifier)
+		return
+	}
+
+	if len(destroyTweetID) > 0 {
+		var res twitter.Tweet
+
+		err = rawCall(token, http.MethodPost,
+			"https://api.twitter.com/1.1/statuses/destroy/"+destroyTweetID+".json", nil, &res)
+		if err != nil {
+			log.Fatalf("cannot delete tweet: %v", err)
+		}
+
+		fmt.Println("delete tweeted:", res.Identifier)
 		return
 	}
 
