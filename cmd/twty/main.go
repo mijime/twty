@@ -487,18 +487,6 @@ func main() {
 		}
 	}
 
-	if len(media) > 0 {
-		var res twitter.UploadMediaResponse
-
-		for i := range media {
-			err = upload(token, media[i], nil, &res)
-			if err != nil {
-				log.Fatalf("cannot upload media: %v", err)
-			}
-			media[i] = res.MediaIDString
-		}
-	}
-
 	if len(search) > 0 {
 		opt := makeopt(
 			"tweet_mode", "extended",
@@ -593,6 +581,21 @@ func main() {
 		return
 	}
 
+	var mediaIDs files
+
+	if len(media) > 0 {
+		var res twitter.UploadMediaResponse
+		mediaIDs = make(files, len(media))
+
+		for i := range media {
+			err = upload(token, media[i], nil, &res)
+			if err != nil {
+				log.Fatalf("cannot upload media: %v", err)
+			}
+			mediaIDs[i] = res.MediaIDString
+		}
+	}
+
 	if fromfile != "" {
 		text, err := readFile(fromfile)
 		if err != nil {
@@ -602,7 +605,7 @@ func main() {
 		opt := makeopt(
 			"status", string(text),
 			"in_reply_to_status_id", inreply,
-			"media_ids", media.String(),
+			"media_ids", mediaIDs.String(),
 		)
 
 		var tweet twitter.Tweet
@@ -668,7 +671,7 @@ func main() {
 	opt := makeopt(
 		"status", strings.Join(flag.Args(), " "),
 		"in_reply_to_status_id", inreply,
-		"media_ids", media.String(),
+		"media_ids", mediaIDs.String(),
 	)
 
 	var tweet twitter.Tweet
