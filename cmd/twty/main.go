@@ -428,9 +428,9 @@ func main() {
 	flag.BoolVar(&asjson, "json", false, "show tweets as json")
 	flag.StringVar(&user, "u", "", "show user timeline")
 	flag.StringVar(&search, "s", "", "search word")
-	flag.StringVar(&favoriteTwID, "fav_id", "", "ID: specify favorite ID")
-	flag.StringVar(&destroyTwID, "destroy_id", "", "ID: specify destroy ID")
-	flag.StringVar(&inreplyTwID, "inreply_id", "", "ID: specify in-reply ID, if not specify text, it will be RT.")
+	flag.StringVar(&favoriteTwID, "fav_id", "", "favorite by tweet ID")
+	flag.StringVar(&inreplyTwID, "rep_id", "", "in-reply by tweet ID, if not specify text, it will be RT.")
+	flag.StringVar(&destroyTwID, "destroy_id", "", "destroy by tweet ID")
 	flag.Var(&media, "m", "upload media")
 	flag.DurationVar(&delay, "S", 0, "delay")
 	flag.BoolVar(&verbose, "v", false, "detail display")
@@ -447,30 +447,9 @@ func main() {
 	flag.StringVar(&count, "count", "5", "fetch tweets count")
 	flag.StringVar(&since, "since", "", "fetch tweets since date.")
 	flag.StringVar(&until, "until", "", "fetch tweets until date.")
-	flag.Int64Var(&sinceID, "since_id", 0, "ID: fetch tweets that id is greater than since_id.")
-	flag.Int64Var(&maxID, "max_id", 0, "ID: fetch tweets that id is lower than max_id.")
+	flag.Int64Var(&sinceID, "since_id", 0, "fetch tweets that id is greater than since_id.")
+	flag.Int64Var(&maxID, "max_id", 0, "fetch tweets that id is lower than max_id.")
 
-	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, `Usage of twty:
-		-a PROFILE: switch profile to load configuration file.
-		-f ID: specify favorite ID
-		-i ID: specify in-reply ID, if not specify text, it will be RT.
-		-destroy ID: specify destroy tweet ID
-		-l USER/LIST: show list's timeline (ex: mattn_jp/subtech)
-		-m FILE: upload media
-		-u USER: show user's timeline
-		-s WORD: search timeline
-		-S DELAY tweets after DELAY
-		-json: as JSON
-		-r: show replies
-		-v: detail display
-		-ff FILENAME: post utf-8 string from a file("-" means STDIN)
-		-count NUMBER: show NUMBER tweets at timeline.
-		-since DATE: show tweets created after the DATE (ex. 2017-05-01)
-		-until DATE: show tweets created before the DATE (ex. 2017-05-31)
-		-since_id NUMBER: show tweets that have ids greater than NUMBER.
-		-max_id NUMBER: show tweets that have ids lower than NUMBER.`)
-	}
 	flag.Parse()
 
 	os.Setenv("GODEBUG", os.Getenv("GODEBUG")+",http2client=0")
