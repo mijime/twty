@@ -261,7 +261,7 @@ func showTweets(tweets []twitter.Tweet, asjson bool, verbose bool) {
 			fmt.Println(user + ": " + name)
 			color.Set(color.Reset)
 			fmt.Println("  " + html.UnescapeString(text))
-			fmt.Println("  " + tweets[i].Identifier)
+			fmt.Println("  " + tweets[i].ID)
 			fmt.Println("  " + toLocalTime(tweets[i].CreatedAt))
 			fmt.Println()
 		}
@@ -615,7 +615,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("cannot post tweet: %v", err)
 		}
-		fmt.Println("tweeted:", tweet.Identifier)
+		fmt.Println("tweeted:", tweet.ID)
 		return
 	}
 
@@ -628,7 +628,7 @@ func main() {
 			log.Fatalf("cannot delete tweet: %v", err)
 		}
 
-		fmt.Println("delete tweet:", res.Identifier)
+		fmt.Println("delete tweet:", res.ID)
 		return
 	}
 
@@ -646,7 +646,7 @@ func main() {
 			color.Set(color.FgHiYellow)
 			fmt.Print(_EmojiHighVoltage)
 			color.Set(color.Reset)
-			fmt.Println("retweeted:", tweet.Identifier)
+			fmt.Println("retweeted:", tweet.ID)
 			return
 		}
 
@@ -694,5 +694,5 @@ func main() {
 	if err != nil {
 		log.Fatalf("cannot post tweet: %v", err)
 	}
-	fmt.Println("tweeted:", tweet.Identifier)
+	fmt.Println("tweeted:", tweet.ID)
 }

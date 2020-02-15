@@ -1,34 +1,40 @@
 package twitter
 
+type PlaceType struct {
+	Name string `json:"name"`
+	Code int    `json:"code"`
+}
+
 type TrendLocation struct {
-	Name        string `json:"name"`
-	CountryCode string `json:"countryCode"`
-	URL         string `json:"url"`
-	Woeid       int    `json:"woeid"`
-	PlaceType   struct {
-		Name string `json:"name"`
-		Code int    `json:"code"`
-	} `json:"placeType"`
-	Parentid int    `json:"parentid"`
-	Country  string `json:"country"`
+	Name        string    `json:"name"`
+	CountryCode string    `json:"countryCode"`
+	URL         string    `json:"url"`
+	Woeid       int       `json:"woeid"`
+	PlaceType   PlaceType `json:"placeType"`
+	Parentid    int       `json:"parentid"`
+	Country     string    `json:"country"`
+}
+
+type TimeZone struct {
+	Name       string `json:"name"`
+	UtcOffset  int    `json:"utc_offset"`
+	TzinfoName string `json:"tzinfo_name"`
+}
+
+type SleepTime struct {
+	Enabled   bool        `json:"enabled"`
+	EndTime   interface{} `json:"end_time"`
+	StartTime interface{} `json:"start_time"`
 }
 
 // Account hold information about account
 type Account struct {
-	TimeZone struct {
-		Name       string `json:"name"`
-		UtcOffset  int    `json:"utc_offset"`
-		TzinfoName string `json:"tzinfo_name"`
-	} `json:"time_zone"`
-	Protected                bool   `json:"protected"`
-	ScreenName               string `json:"screen_name"`
-	AlwaysUseHTTPS           bool   `json:"always_use_https"`
-	UseCookiePersonalization bool   `json:"use_cookie_personalization"`
-	SleepTime                struct {
-		Enabled   bool        `json:"enabled"`
-		EndTime   interface{} `json:"end_time"`
-		StartTime interface{} `json:"start_time"`
-	} `json:"sleep_time"`
+	TimeZone                  TimeZone        `json:"time_zone"`
+	Protected                 bool            `json:"protected"`
+	ScreenName                string          `json:"screen_name"`
+	AlwaysUseHTTPS            bool            `json:"always_use_https"`
+	UseCookiePersonalization  bool            `json:"use_cookie_personalization"`
+	SleepTime                 SleepTime       `json:"sleep_time"`
 	GeoEnabled                bool            `json:"geo_enabled"`
 	Language                  string          `json:"language"`
 	DiscoverableByEmail       bool            `json:"discoverable_by_email"`
@@ -41,37 +47,44 @@ type Account struct {
 	TrendLocation             []TrendLocation `json:"trend_location"`
 }
 
+// User hold information about user
+type User struct {
+	Name            string `json:"name"`
+	ScreenName      string `json:"screen_name"`
+	FollowersCount  int    `json:"followers_count"`
+	ProfileImageURL string `json:"profile_image_url"`
+}
+
+type Place struct {
+	ID       string `json:"id"`
+	FullName string `json:"full_name"`
+}
+
+type Entities struct {
+	HashTags []struct {
+		Indices [2]int `json:"indices"`
+		Text    string `json:"text"`
+	}
+	UserMentions []struct {
+		Indices    [2]int `json:"indices"`
+		ScreenName string `json:"screen_name"`
+	} `json:"user_mentions"`
+	Urls []struct {
+		Indices [2]int `json:"indices"`
+		URL     string `json:"url"`
+	} `json:"urls"`
+}
+
 // Tweet hold information about tweet
 type Tweet struct {
-	Text       string `json:"text"`
-	FullText   string `json:"full_text,omitempty"`
-	Identifier string `json:"id_str"`
-	Source     string `json:"source"`
-	CreatedAt  string `json:"created_at"`
-	User       struct {
-		Name            string `json:"name"`
-		ScreenName      string `json:"screen_name"`
-		FollowersCount  int    `json:"followers_count"`
-		ProfileImageURL string `json:"profile_image_url"`
-	} `json:"user"`
-	Place *struct {
-		ID       string `json:"id"`
-		FullName string `json:"full_name"`
-	} `json:"place"`
-	Entities struct {
-		HashTags []struct {
-			Indices [2]int `json:"indices"`
-			Text    string `json:"text"`
-		}
-		UserMentions []struct {
-			Indices    [2]int `json:"indices"`
-			ScreenName string `json:"screen_name"`
-		} `json:"user_mentions"`
-		Urls []struct {
-			Indices [2]int `json:"indices"`
-			URL     string `json:"url"`
-		} `json:"urls"`
-	} `json:"entities"`
+	ID        string   `json:"id_str"`
+	Text      string   `json:"text"`
+	FullText  string   `json:"full_text,omitempty"`
+	Source    string   `json:"source"`
+	CreatedAt string   `json:"created_at"`
+	User      User     `json:"user"`
+	Place     *Place   `json:"place"`
+	Entities  Entities `json:"entities"`
 }
 
 // SearchMetadata hold information about search metadata
@@ -85,23 +98,6 @@ type SearchMetadata struct {
 	Count       int     `json:"count"`
 	SinceID     int     `json:"since_id"`
 	SinceIDStr  string  `json:"since_id_str"`
-}
-
-// RSS hold information about RSS
-type RSS struct {
-	Channel struct {
-		Title       string
-		Description string
-		Link        string
-		Item        []struct {
-			Title       string
-			Description string
-			PubDate     string
-			Link        []string
-			GUID        string
-			Author      string
-		}
-	}
 }
 
 type UploadMediaResponse struct {
