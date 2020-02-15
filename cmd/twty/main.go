@@ -407,23 +407,23 @@ func main() {
 	var list string
 	var asjson bool
 	var user string
-	var favorite string
+	var favoriteTwID string
 	var search string
-	var inreply string
+	var inreplyTwID string
 	var delay time.Duration
 	var media files
 	var verbose bool
-	var destroyTweetID string
+	var destroyTwID string
 
 	flag.StringVar(&profile, "a", "", "account")
 	flag.BoolVar(&reply, "r", false, "show replies")
 	flag.StringVar(&list, "l", "", "show tweets")
 	flag.BoolVar(&asjson, "json", false, "show tweets as json")
 	flag.StringVar(&user, "u", "", "show user timeline")
-	flag.StringVar(&favorite, "f", "", "specify favorite ID")
-	flag.StringVar(&destroyTweetID, "destroy", "", "ID: specify destroy ID")
 	flag.StringVar(&search, "s", "", "search word")
-	flag.StringVar(&inreply, "i", "", "specify in-reply ID, if not specify text, it will be RT.")
+	flag.StringVar(&favoriteTwID, "fav_id", "", "ID: specify favorite ID")
+	flag.StringVar(&destroyTwID, "destroy_id", "", "ID: specify destroy ID")
+	flag.StringVar(&inreplyTwID, "inreply_id", "", "ID: specify in-reply ID, if not specify text, it will be RT.")
 	flag.Var(&media, "m", "upload media")
 	flag.DurationVar(&delay, "S", 0, "delay")
 	flag.BoolVar(&verbose, "v", false, "detail display")
@@ -440,8 +440,8 @@ func main() {
 	flag.StringVar(&count, "count", "5", "fetch tweets count")
 	flag.StringVar(&since, "since", "", "fetch tweets since date.")
 	flag.StringVar(&until, "until", "", "fetch tweets until date.")
-	flag.Int64Var(&sinceID, "since_id", 0, "fetch tweets that id is greater than since_id.")
-	flag.Int64Var(&maxID, "max_id", 0, "fetch tweets that id is lower than max_id.")
+	flag.Int64Var(&sinceID, "since_id", 0, "ID: fetch tweets that id is greater than since_id.")
+	flag.Int64Var(&maxID, "max_id", 0, "ID: fetch tweets that id is lower than max_id.")
 
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, `Usage of twty:
@@ -568,9 +568,9 @@ func main() {
 		return
 	}
 
-	if favorite != "" {
+	if favoriteTwID != "" {
 		opt := makeopt(
-			"id", favorite,
+			"id", favoriteTwID,
 		)
 		err := rawCall(token, http.MethodPost, "https://api.twitter.com/1.1/favorites/create.json", opt, nil)
 		if err != nil {
@@ -606,7 +606,7 @@ func main() {
 
 		opt := makeopt(
 			"status", string(text),
-			"in_reply_to_status_id", inreply,
+			"in_reply_to_status_id", inreplyTwID,
 			"media_ids", mediaIDs.String(),
 		)
 
@@ -619,11 +619,11 @@ func main() {
 		return
 	}
 
-	if len(destroyTweetID) > 0 {
+	if len(destroyTwID) > 0 {
 		var res twitter.Tweet
 
 		err = rawCall(token, http.MethodPost,
-			"https://api.twitter.com/1.1/statuses/destroy/"+destroyTweetID+".json", nil, &res)
+			"https://api.twitter.com/1.1/statuses/destroy/"+destroyTwID+".json", nil, &res)
 		if err != nil {
 			log.Fatalf("cannot delete tweet: %v", err)
 		}
@@ -633,12 +633,12 @@ func main() {
 	}
 
 	if flag.NArg() == 0 && len(media) == 0 {
-		if inreply != "" {
+		if inreplyTwID != "" {
 			opt := makeopt("tweet_mode", "extended")
 			opt = countToOpt(opt, count)
 
 			var tweet twitter.Tweet
-			err := rawCall(token, http.MethodPost, "https://api.twitter.com/1.1/statuses/retweet/"+inreply+".json", opt, &tweet)
+			err := rawCall(token, http.MethodPost, "https://api.twitter.com/1.1/statuses/retweet/"+inreplyTwID+".json", opt, &tweet)
 			if err != nil {
 				log.Fatalf("cannot retweet: %v", err)
 			}
@@ -685,7 +685,7 @@ func main() {
 
 	opt := makeopt(
 		"status", strings.Join(flag.Args(), " "),
-		"in_reply_to_status_id", inreply,
+		"in_reply_to_status_id", inreplyTwID,
 		"media_ids", mediaIDs.String(),
 	)
 
