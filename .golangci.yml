@@ -1,0 +1,15 @@
+---
+run:
+  tests: false
+
+linters:
+  disable:
+    - wsl
+    - gomnd
+    - gochecknoglobals
+
+linters-settings:
+  gocognit:
+    min-complexity: 10
+  gocyclo:
+    min-complexity: 15
