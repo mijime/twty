@@ -437,7 +437,7 @@ func main() {
 	var maxID int64
 
 	flag.StringVar(&fromfile, "ff", "", "post utf-8 string from a file(\"-\" means STDIN)")
-	flag.StringVar(&count, "count", "", "fetch tweets count")
+	flag.StringVar(&count, "count", "5", "fetch tweets count")
 	flag.StringVar(&since, "since", "", "fetch tweets since date.")
 	flag.StringVar(&until, "until", "", "fetch tweets until date.")
 	flag.Int64Var(&sinceID, "since_id", 0, "fetch tweets that id is greater than since_id.")
