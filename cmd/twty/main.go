@@ -24,6 +24,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/garyburd/go-oauth/oauth"
+	"github.com/kyokomi/emoji"
 
 	"github.com/mijime/twty/pkg/twitter"
 )
@@ -593,7 +594,7 @@ func main() {
 		}
 
 		opt := makeopt(
-			"status", string(text),
+			"status", emoji.Sprint(string(text)),
 			"in_reply_to_status_id", inreplyTwID,
 			"media_ids", mediaIDs.String(),
 		)
@@ -672,7 +673,7 @@ func main() {
 	}
 
 	opt := makeopt(
-		"status", strings.Join(flag.Args(), " "),
+		"status", emoji.Sprint(strings.Join(flag.Args(), " ")),
 		"in_reply_to_status_id", inreplyTwID,
 		"media_ids", mediaIDs.String(),
 	)
